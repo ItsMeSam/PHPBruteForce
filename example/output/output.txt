@@ -1,0 +1,3 @@
+[01/19/2015 04:00:47 pm] Server: Found a matching combination (admin:password) in line 0 of wordlist/wordlist.txt
+[01/19/2015 04:01:26 pm] Server: Found a matching combination (admin:password) in line 0 of wordlist/wordlist.txt
+[01/19/2015 04:01:29 pm] Server: Found a matching combination (admin:password) in line 0 of wordlist/wordlist.txt

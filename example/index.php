@@ -3,7 +3,7 @@
 require "app/bruteforce.class.php";
 
 BruteForce::init(array(
-		'url'         => 'http://127.0.0.1/PHPBruteForce/login.php', // URL from the login page.
+		'url'         => 'http://192.168.2.2/bf/repo/PHPBruteForce/example/login.php', // URL from the login page.
 		'username'    => 'username', // The username in the POST request.
 		'password'    => 'password', // The password in the POST request.
 		'adminname'   => 'admin',    // The name of the admin on the login page, in this class is brute-forcing only for the password.
